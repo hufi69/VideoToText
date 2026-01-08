@@ -1,0 +1,47 @@
+# Dependencies
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Build outputs
+dist/
+build/
+*.tsbuildinfo
+
+# Temporary files
+temp/
+uploads/
+*.log
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# React Native
+client/.expo/
+client/.expo-shared/
+client/ios/Pods/
+client/ios/build/
+client/android/.gradle/
+client/android/app/build/
+client/android/build/
+client/android/.idea/
+client/android/local.properties
+client/metro.config.js.bak
+
+# Misc
+*.orig
+.watchmanconfig
