@@ -1,6 +1,6 @@
 import ffmpeg from 'fluent-ffmpeg';
 import ffmpegPath from 'ffmpeg-static';
-import ytdl from '@distube/ytdl-core';
+import play from 'play-dl';
 import fs from 'fs';
 import path from 'path';
 import { v4 as uuidv4 } from 'uuid';
@@ -19,7 +19,11 @@ export class VideoService {
     }
 
     isValidYoutubeUrl(url: string): boolean {
-        return ytdl.validateURL(url);
+        try {
+            return play.yt_validate(url) !== false;
+        } catch {
+            return false;
+        }
     }
 
     async downloadVideo(url: string): Promise<string> {
@@ -29,13 +33,37 @@ export class VideoService {
 
         const videoId = uuidv4();
         const outputPath = path.join(this.tempDir, `${videoId}.mp4`);
-        const stream = ytdl(url, { quality: 'lowest' }); // We only need audio, so lowest video quality is fine
 
-        return new Promise((resolve, reject) => {
-            stream.pipe(fs.createWriteStream(outputPath))
-                .on('finish', () => resolve(outputPath))
-                .on('error', reject);
-        });
+        console.log(`[VideoService] Starting download for: ${url} using play-dl`);
+
+        try {
+            const stream = await play.stream(url);
+
+            return new Promise((resolve, reject) => {
+                const writeStream = fs.createWriteStream(outputPath);
+
+                const timeout = setTimeout(() => {
+                    stream.stream.destroy();
+                    writeStream.destroy();
+                    reject(new Error('Download timed out after 90 seconds'));
+                }, 90000);
+
+                stream.stream.pipe(writeStream)
+                    .on('finish', () => {
+                        clearTimeout(timeout);
+                        console.log(`[VideoService] Download finished: ${outputPath}`);
+                        resolve(outputPath);
+                    })
+                    .on('error', (err: Error) => {
+                        clearTimeout(timeout);
+                        console.error(`[VideoService] Download error:`, err);
+                        reject(err);
+                    });
+            });
+        } catch (error: any) {
+            console.error(`[VideoService] Play-dl error:`, error);
+            throw new Error(`Failed to start download: ${error.message}`);
+        }
     }
 
     async extractAudio(videoPath: string): Promise<string> {
